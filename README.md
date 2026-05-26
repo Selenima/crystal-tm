@@ -186,3 +186,180 @@ flowchart LR
 - настраивает очереди;
 - добавляет статусы и переходы;
 - создаёт определения дополнительных полей.
+
+# Crystal — развертывание
+
+## Что нужно для запуска
+
+- **.NET 8 SDK** для локального запуска и сборки;
+- **PostgreSQL 16** или совместимая версия;
+- доступ к базе `crystal_task_manager`;
+- при запуске в контейнере — сетевой доступ между приложением и PostgreSQL.
+
+## Как работает авторизация после обновления
+
+После добавления access/refresh токенов схема входа стала такой:
+
+1. Пользователь вводит email и пароль.
+2. `AccountController` проверяет пароль и создаёт серверную сессию `UserSessionToken`.
+3. Генерируются две случайные строки:
+   - **access token** — короткоживущий, используется как текущий маркер сессии;
+   - **refresh token** — живёт дольше и хранится в HttpOnly cookie.
+4. В БД сохраняются только **хэши** токенов.
+5. Cookie-аутентификация хранит principal с идентификатором сессии и access token.
+6. При каждом запросе `OnValidatePrincipal` проверяет:
+   - не отозвана ли сессия;
+   - не истёк ли refresh token;
+   - совпадает ли access token.
+7. Если access token истёк, но refresh token ещё действителен, токены автоматически пересоздаются и обновляются.
+8. При logout сессия помечается отозванной, cookie удаляется.
+
+## Конфигурация подключения к БД
+
+В `Crystal.Web/appsettings.json` по умолчанию задана строка подключения:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=crystal_task_manager;Username=postgres;Password=postgres"
+  }
+}
+```
+
+Если приложение запускается **на хосте**, а PostgreSQL — в Docker, `localhost` подходит.
+
+Если приложение запускается **тоже в Docker**, нужно заменить `Host=localhost` на имя сервиса, например:
+
+```text
+Host=postgres;Port=5432;Database=crystal_task_manager;Username=postgres;Password=postgres
+```
+
+## Локальный запуск
+
+1. Поднять PostgreSQL:
+
+```powershell
+docker compose up -d postgres
+```
+
+2. Запустить приложение:
+
+```powershell
+dotnet run --project Crystal.Web/Crystal.Web.csproj
+```
+
+3. На старте приложение автоматически применяет миграции:
+
+```csharp
+dbContext.Database.Migrate();
+```
+
+Это означает, что схема БД создаётся/обновляется при запуске без отдельной ручной команды.
+
+## Наполнение тестовыми данными
+
+В `ApplicationDbContext` есть seed-данные:
+
+- проекты;
+- очереди;
+- статусы и переходы;
+- определения полей;
+- пользователи;
+- связи пользователей с проектами;
+- тестовые задачи и комментарии.
+
+Тестовые учётные записи:
+
+- `admin@crystal.local` / `admin123`
+- `anna@crystal.local` / `anna123`
+- `oleg@crystal.local` / `oleg123`
+
+> Эти данные подходят только для локальной/учебной среды. Перед реальным использованием их нужно заменить.
+
+## Docker Compose
+
+Файл `docker-compose.yml` сейчас поднимает только PostgreSQL:
+
+- образ `postgres:16-alpine`;
+- том `postgres_data` для сохранения данных;
+- healthcheck через `pg_isready`;
+- проброс порта `5432:5432`.
+
+Важно: в текущем виде compose **не содержит сервис самого приложения**.
+Это означает, что:
+
+- либо приложение запускается локально, а БД — в контейнере;
+- либо нужно добавить отдельный сервис `crystal-web`.
+
+## Dockerfile: текущее состояние
+
+Текущий `Dockerfile` в репозитории:
+
+```dockerfile
+FROM --platform=$BUILDPLATFORM dhi.io/dotnet:10-sdk AS build
+ARG TARGETARCH
+COPY . /source
+WORKDIR /source/src
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet publish -a ${TARGETARCH/amd64/x64} --use-current-runtime --self-contained false -o /app \
+
+FROM dhi.io/aspnetcore:10 AS final
+WORKDIR /app
+COPY --from=build /app .
+ENTRYPOINT ["dotnet", ""]
+```
+
+### Замечания к этому Dockerfile
+
+1. **`WORKDIR /source/src` не соответствует структуре репозитория.**
+   В проекте нет папки `src`; основной проект лежит в `Crystal.Web`.
+
+2. **`dotnet publish` не указывает путь к `.csproj`.**
+   Из-за этого сборка не понимает, что именно публиковать.
+
+3. **Последняя команда `ENTRYPOINT ["dotnet", ""]` некорректна.**
+   После публикации нужно запускать реальный DLL-файл приложения.
+
+4. **Dockerfile сейчас нельзя считать рабочим без правки.**
+
+## Рекомендуемый рабочий вариант Dockerfile
+
+Ниже пример, который соответствует текущей структуре репозитория:
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /source
+COPY . .
+RUN dotnet publish Crystal.Web/Crystal.Web.csproj -c Release -o /app
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=build /app .
+ENTRYPOINT ["dotnet", "Crystal.Web.dll"]
+```
+
+## Если приложение и БД запускаются в Docker одновременно
+
+В таком случае удобно использовать:
+
+- сервис `postgres` из `docker-compose.yml`;
+- сервис `crystal-web` с образом приложения;
+- строку подключения через имя сервиса `postgres`.
+
+Пример переменных окружения для контейнера приложения:
+
+```text
+ASPNETCORE_ENVIRONMENT=Production
+ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=crystal_task_manager;Username=postgres;Password=postgres
+```
+
+Для access/refresh токенов дополнительных переменных окружения не требуется: время жизни токенов задаётся в `SessionTokenService` в коде.
+
+## Контрольный список перед запуском
+
+- [ ] PostgreSQL доступен и принимает подключения.
+- [ ] Строка подключения совпадает с фактическим адресом БД.
+- [ ] Применены миграции.
+- [ ] Проверены тестовые учётные записи.
+- [ ] Если используется Docker, Dockerfile исправлен под реальную структуру проекта.
+
