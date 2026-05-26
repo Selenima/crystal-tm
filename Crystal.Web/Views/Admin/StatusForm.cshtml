@@ -1,0 +1,12 @@
+@model TaskStatusEntity
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Новый статус" : "Редактирование статуса";
+}
+
+<h1 class="h3 mb-3">@ViewData["Title"]</h1>
+<form method="post" class="card card-body shadow-sm">
+    <input asp-for="Id" type="hidden" />
+    <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /></div>
+    <div class="mb-3"><label asp-for="ColorClass" class="form-label"></label><input asp-for="ColorClass" class="form-control" /></div>
+    <div class="d-flex gap-2"><button type="submit" class="btn btn-primary">Сохранить</button><a class="btn btn-outline-secondary" asp-action="Index">Назад</a></div>
+</form>

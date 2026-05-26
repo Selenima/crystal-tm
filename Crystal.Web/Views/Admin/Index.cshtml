@@ -1,0 +1,169 @@
+@model AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Администрирование";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Администрирование</h1>
+        <p class="text-muted mb-0">Управление пользователями, проектами, очередями, статусами и полями задач.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card card-body shadow-sm">
+            <div class="d-flex justify-content-between mb-3">
+                <h2 class="h5 mb-0">Пользователи</h2>
+                <a class="btn btn-sm btn-primary" asp-action="UserForm">Добавить</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>Имя</th><th>Email</th><th>Роль</th><th>Очередь</th><th>Проекты</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var item in Model.Users)
+                    {
+                        <tr>
+                            <td>@item.FullName</td>
+                            <td>@item.Email</td>
+                            <td>@(item.IsAdmin ? "Admin" : "User")</td>
+                            <td>@item.WorkQueue?.Name</td>
+                            <td>@string.Join(", ", item.ProjectAccesses.Select(x => x.ProjectEntity!.Name))</td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-primary" asp-action="UserForm" asp-route-id="@item.Id">Изменить</a>
+                                <form method="post" asp-action="DeleteUser" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card card-body shadow-sm h-100">
+            <div class="d-flex justify-content-between mb-3">
+                <h2 class="h5 mb-0">Проекты</h2>
+                <a class="btn btn-sm btn-primary" asp-action="ProjectForm">Добавить</a>
+            </div>
+            @foreach (var item in Model.Projects)
+            {
+                <div class="border rounded p-3 mb-2">
+                    <div class="fw-semibold">@item.Name</div>
+                    <div class="text-muted small mb-2">@item.Description</div>
+                    <a class="btn btn-sm btn-outline-primary" asp-action="ProjectForm" asp-route-id="@item.Id">Изменить</a>
+                    <form method="post" asp-action="DeleteProject" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card card-body shadow-sm h-100">
+            <div class="d-flex justify-content-between mb-3">
+                <h2 class="h5 mb-0">Очереди</h2>
+                <a class="btn btn-sm btn-primary" asp-action="QueueForm">Добавить</a>
+            </div>
+            @foreach (var item in Model.Queues)
+            {
+                <div class="border rounded p-3 mb-2">
+                    <div class="fw-semibold">@item.Name</div>
+                    <div class="text-muted small">@item.Description</div>
+                    <div class="small mt-2">Пользователи: @string.Join(", ", item.Users.Select(x => x.FullName))</div>
+                    <a class="btn btn-sm btn-outline-primary mt-2" asp-action="QueueForm" asp-route-id="@item.Id">Изменить</a>
+                    <form method="post" asp-action="DeleteQueue" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger mt-2">Удалить</button>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card card-body shadow-sm h-100">
+            <div class="d-flex justify-content-between mb-3">
+                <h2 class="h5 mb-0">Статусы</h2>
+                <a class="btn btn-sm btn-primary" asp-action="StatusForm">Добавить</a>
+            </div>
+            @foreach (var item in Model.Statuses)
+            {
+                <div class="border rounded p-3 mb-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">@item.Name</div>
+                        <div class="text-muted small">CSS badge: @item.ColorClass</div>
+                    </div>
+                    <div>
+                        <a class="btn btn-sm btn-outline-primary" asp-action="StatusForm" asp-route-id="@item.Id">Изменить</a>
+                        <form method="post" asp-action="DeleteStatus" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card card-body shadow-sm h-100">
+            <div class="d-flex justify-content-between mb-3">
+                <h2 class="h5 mb-0">Переходы статусов</h2>
+                <a class="btn btn-sm btn-primary" asp-action="TransitionForm">Добавить</a>
+            </div>
+            @foreach (var item in Model.Transitions)
+            {
+                <div class="border rounded p-3 mb-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">@item.FromTaskStatusEntity?.Name -> @item.ToTaskStatusEntity?.Name</div>
+                    </div>
+                    <div>
+                        <a class="btn btn-sm btn-outline-primary" asp-action="TransitionForm" asp-route-id="@item.Id">Изменить</a>
+                        <form method="post" asp-action="DeleteTransition" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card card-body shadow-sm h-100">
+            <div class="d-flex justify-content-between mb-3">
+                <h2 class="h5 mb-0">Поля задач</h2>
+                <a class="btn btn-sm btn-primary" asp-action="FieldForm">Добавить</a>
+            </div>
+            @foreach (var item in Model.FieldDefinitions)
+            {
+                <div class="border rounded p-3 mb-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">@item.Name</div>
+                        <div class="text-muted small">@item.FieldType | @(item.IsBase ? "Базовое" : "Кастомное")</div>
+                    </div>
+                    <div>
+                        <a class="btn btn-sm btn-outline-primary" asp-action="FieldForm" asp-route-id="@item.Id">Изменить</a>
+                        <form method="post" asp-action="DeleteField" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,81 @@
+@model TaskIndexViewModel
+@{
+    ViewData["Title"] = "Задачи";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">Задачи</h1>
+        <p class="text-muted mb-0">Фильтрация, быстрый перевод статусов и комментарии без перезагрузки.</p>
+    </div>
+    <a class="btn btn-primary" asp-action="Create">Создать задачу</a>
+</div>
+
+@if (TempData["TaskError"] is string taskError)
+{
+    <div class="alert alert-warning">@taskError</div>
+}
+
+<div class="card card-body shadow-sm mb-3">
+    <div class="row g-2">
+        <div class="col-lg-3"><input id="searchInput" class="form-control" value="@Model.Search" placeholder="Поиск по названию" /></div>
+        <div class="col-lg-3">
+            <select id="statusFilter" class="form-select">
+                <option value="">Все статусы</option>
+                @foreach (var item in Model.Statuses)
+                {
+                    <option value="@item.Value" selected="@(item.Value == Model.StatusId?.ToString())">@item.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-lg-3">
+            <select id="projectFilter" class="form-select">
+                <option value="">Все проекты</option>
+                @foreach (var item in Model.Projects)
+                {
+                    <option value="@item.Value" selected="@(item.Value == Model.ProjectId?.ToString())">@item.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-lg-2"><select id="priorityFilter" class="form-select" asp-items="Html.GetEnumSelectList<TaskPriority>()"><option value="">Любой приоритет</option></select></div>
+        <div class="col-lg-1"><button id="filterButton" class="btn btn-outline-secondary w-100">Ок</button></div>
+    </div>
+</div>
+
+<div id="taskTableContainer">
+    <partial name="_TaskTable" model="Model" />
+</div>
+
+@section Scripts {
+    <script>
+        const currentPriority = '@Model.Priority';
+        if (currentPriority) {
+            $('#priorityFilter').val(currentPriority);
+        }
+
+        function bindPager() {
+            $('.task-page-link').off('click').on('click', function (event) {
+                event.preventDefault();
+                loadTasks($(this).data('page'));
+            });
+        }
+
+        function loadTasks(page = 1) {
+            $.get('/Tasks/Filter', {
+                search: $('#searchInput').val(),
+                statusId: $('#statusFilter').val(),
+                projectId: $('#projectFilter').val(),
+                priority: $('#priorityFilter').val(),
+                page: page
+            }).done(function (html) {
+                $('#taskTableContainer').html(html);
+                bindPager();
+            }).fail(function () {
+                alert('Не удалось загрузить задачи.');
+            });
+        }
+
+        $('#filterButton').on('click', function () { loadTasks(); });
+        bindPager();
+    </script>
+}

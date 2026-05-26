@@ -1,0 +1,19 @@
+@model IEnumerable<TaskComment>
+
+@if (!Model.Any())
+{
+    <p class="text-muted mb-0">Комментариев пока нет.</p>
+}
+else
+{
+    foreach (var item in Model)
+    {
+        <div class="border rounded p-3 mb-2 comment-card">
+            <div class="d-flex justify-content-between">
+                <strong>@item.User?.FullName</strong>
+                <span class="text-muted small">@item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+            </div>
+            <div class="mt-2">@item.Comment</div>
+        </div>
+    }
+}

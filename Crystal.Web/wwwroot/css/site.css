@@ -1,0 +1,24 @@
+body {
+    background: linear-gradient(180deg, #f4f7fb 0%, #eef2f6 100%);
+}
+
+.card {
+    border: 0;
+    border-radius: 1rem;
+}
+
+.status-new {
+    background-color: #6c757d;
+}
+
+.status-inprogress {
+    background-color: #0d6efd;
+}
+
+.status-done {
+    background-color: #198754;
+}
+
+.comment-card {
+    background-color: #f8fafc;
+}

@@ -1,0 +1,45 @@
+@model TaskEditViewModel
+
+<form method="post" class="card card-body shadow-sm">
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+    <input asp-for="Task.Id" type="hidden" />
+    <input asp-for="CreatedById" type="hidden" />
+
+    <div class="row g-3">
+        <div class="col-12"><label asp-for="Task.Title" class="form-label"></label><input asp-for="Task.Title" class="form-control" /></div>
+        <div class="col-12"><label asp-for="Task.Description" class="form-label"></label><textarea asp-for="Task.Description" class="form-control" rows="4"></textarea></div>
+        <div class="col-md-6">
+            <label asp-for="Task.ProjectEntityId" class="form-label"></label>
+            <select asp-for="Task.ProjectEntityId" asp-items="Model.Projects" class="form-select">
+                <option value="0">Выберите проект</option>
+            </select>
+            <span asp-validation-for="Task.ProjectEntityId" class="text-danger"></span>
+        </div>
+        <div class="col-md-6"><label asp-for="Task.WorkQueueId" class="form-label"></label><select asp-for="Task.WorkQueueId" asp-items="Model.Queues" class="form-select"><option value="">Без очереди</option></select></div>
+        <div class="col-md-6"><label asp-for="Task.AssignedToId" class="form-label"></label><select asp-for="Task.AssignedToId" asp-items="Model.Users" class="form-select"><option value="">Не назначен</option></select></div>
+        <div class="col-md-6"><label asp-for="Task.Deadline" class="form-label"></label><input asp-for="Task.Deadline" class="form-control" /></div>
+        <div class="col-md-6"><label asp-for="Task.Priority" class="form-label"></label><select asp-for="Task.Priority" asp-items="Html.GetEnumSelectList<TaskPriority>()" class="form-select"></select></div>
+    </div>
+
+    <hr class="my-4" />
+    <h2 class="h5 mb-3">Поля задачи</h2>
+    <div class="row g-3">
+        @for (var i = 0; i < Model.Fields.Count; i++)
+        {
+            <input asp-for="Fields[i].DefinitionId" type="hidden" />
+            <input asp-for="Fields[i].Name" type="hidden" />
+            <input asp-for="Fields[i].FieldType" type="hidden" />
+            <input asp-for="Fields[i].IsRequired" type="hidden" />
+            <input asp-for="Fields[i].IsBase" type="hidden" />
+            <div class="col-md-6">
+                <label class="form-label">@Model.Fields[i].Name @(Model.Fields[i].IsRequired ? "*" : "")</label>
+                <input asp-for="Fields[i].Value" class="form-control" />
+            </div>
+        }
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Назад</a>
+    </div>
+</form>
