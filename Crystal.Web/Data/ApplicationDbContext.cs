@@ -15,6 +15,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<TaskFieldValue> TaskFieldValues => Set<TaskFieldValue>();
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
     public DbSet<TaskComment> TaskComments => Set<TaskComment>();
+    public DbSet<UserSessionToken> UserSessionTokens => Set<UserSessionToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +32,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .IsUnique();
         modelBuilder.Entity<TaskFieldValue>()
             .HasIndex(x => new { x.TaskItemId, x.TaskFieldDefinitionId })
+            .IsUnique();
+        modelBuilder.Entity<UserSessionToken>()
+            .HasIndex(x => x.AccessTokenHash)
+            .IsUnique();
+        modelBuilder.Entity<UserSessionToken>()
+            .HasIndex(x => x.RefreshTokenHash)
             .IsUnique();
 
         modelBuilder.Entity<UserProjectAccess>()
@@ -105,6 +112,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        modelBuilder.Entity<UserSessionToken>()
+            .HasOne(x => x.User)
+            .WithMany(x => x.SessionTokens)
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<TaskFieldValue>()
             .HasOne(x => x.TaskItem)
             .WithMany(x => x.FieldValues)
@@ -154,7 +167,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 Email = "admin@crystal.local",
                 Position = "Administrator",
                 Department = "Management",
-                PasswordHash = SeederPassword.Hash("admin123"),
+                PasswordHash = "AQAAAAIAAYagAAAAEBqEySPIpl73S1dCWxEGI9z9GT1cqpV+AzHXo33cbBCTgWymBd81t3nJppvXb6ZLtQ==",
                 IsAdmin = true,
                 WorkQueueId = 1
             },
@@ -166,7 +179,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 Email = "anna@crystal.local",
                 Position = "Backend Developer",
                 Department = "Development",
-                PasswordHash = SeederPassword.Hash("anna123"),
+                PasswordHash = "AQAAAAIAAYagAAAAEO2AUy6XbPUBFCBNK31joyTJjtIeTMtBa/i55OlTfLT8JXfuMqRz+Egw1VWcQm/kew==",
                 IsAdmin = false,
                 WorkQueueId = 1
             },
@@ -178,7 +191,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 Email = "oleg@crystal.local",
                 Position = "QA Engineer",
                 Department = "QA",
-                PasswordHash = SeederPassword.Hash("oleg123"),
+                PasswordHash = "AQAAAAIAAYagAAAAEFv611jAShbUJebBJZ8RCpxyUxDnAAsCsSkryM+XNePK+Z2bdQ6lIdNncuzLjSih3A==",
                 IsAdmin = false,
                 WorkQueueId = 2
             }

@@ -1,15 +1,41 @@
 using Crystal.Web.Data;
+using Crystal.Web.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<ISessionTokenService, SessionTokenService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/Login";
+        options.SlidingExpiration = false;
+        options.Events = new CookieAuthenticationEvents
+        {
+            OnValidatePrincipal = async context =>
+            {
+                var sessionTokenService = context.HttpContext.RequestServices.GetRequiredService<ISessionTokenService>();
+                var principal = await sessionTokenService.ValidateOrRefreshAsync(context.Principal!, context.HttpContext);
+
+                if (principal == null)
+                {
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    sessionTokenService.DeleteRefreshTokenCookie(context.HttpContext.Response);
+                    return;
+                }
+
+                if (!ReferenceEquals(principal, context.Principal))
+                {
+                    context.ReplacePrincipal(principal);
+                    context.ShouldRenew = true;
+                }
+            }
+        };
     });
 
 builder.Services.AddAuthorization(options =>

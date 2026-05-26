@@ -45,6 +45,7 @@ public class User
     public ICollection<TaskItem> AssignedTasks { get; set; } = new List<TaskItem>();
     public ICollection<TaskItem> CreatedTasks { get; set; } = new List<TaskItem>();
     public ICollection<TaskComment> Comments { get; set; } = new List<TaskComment>();
+    public ICollection<UserSessionToken> SessionTokens { get; set; } = new List<UserSessionToken>();
 
     public string FullName => $"{FirstName} {LastName}";
 }

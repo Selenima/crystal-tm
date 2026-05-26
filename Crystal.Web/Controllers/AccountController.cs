@@ -1,6 +1,6 @@
-using System.Security.Claims;
 using Crystal.Web.Data;
 using Crystal.Web.Models;
+using Crystal.Web.Services;
 using Crystal.Web.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Crystal.Web.Controllers;
 
-public class AccountController(ApplicationDbContext context) : Controller
+public class AccountController(ApplicationDbContext context, ISessionTokenService sessionTokenService) : Controller
 {
     private readonly PasswordHasher<User> _passwordHasher = new();
 
@@ -48,18 +48,19 @@ public class AccountController(ApplicationDbContext context) : Controller
             return View(model);
         }
 
-        var claims = new List<Claim>
+        var sessionTokens = await sessionTokenService.CreateSessionAsync(user);
+        var principal = SessionTokenService.BuildPrincipal(user, sessionTokens.SessionId, sessionTokens.AccessToken);
+        var authenticationProperties = new AuthenticationProperties
         {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.FullName),
-            new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User")
+            IsPersistent = true,
+            ExpiresUtc = sessionTokens.RefreshTokenExpiresAt
         };
 
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(identity));
+            principal,
+            authenticationProperties);
+        sessionTokenService.AppendRefreshTokenCookie(Response, sessionTokens.RefreshToken, sessionTokens.RefreshTokenExpiresAt);
 
         return RedirectToAction("Index", "Tasks");
     }
@@ -68,7 +69,9 @@ public class AccountController(ApplicationDbContext context) : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
+        await sessionTokenService.RevokeCurrentSessionAsync(User);
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        sessionTokenService.DeleteRefreshTokenCookie(Response);
         return RedirectToAction(nameof(Login));
     }
 }
