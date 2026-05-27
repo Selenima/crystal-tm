@@ -140,7 +140,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // hasdata добавляет мокнутые данные
         modelBuilder.Entity<ProjectEntity>().HasData(
             new ProjectEntity { Id = 1, Name = "Internal Portal", Description = "Внутренний проект для сотрудников." },
-            new ProjectEntity { Id = 2, Name = "Demo Release", Description = "Учебная демонстрация для сдачи." }
+            new ProjectEntity { Id = 2, Name = "Demo Release", Description = "Test." }
         );
         
         modelBuilder.Entity<WorkQueue>().HasData(
