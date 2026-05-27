@@ -2,8 +2,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Crystal.Web.Models;
 
+// описание дополнительного поля задачи, например оценка или заказчик
 public class TaskFieldDefinition
 {
+    // id поля в базе
     public int Id { get; set; }
 
     [Required]

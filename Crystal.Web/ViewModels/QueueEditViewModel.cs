@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Crystal.Web.ViewModels;
 
+// модель формы очереди, используется для создания и редактирования
 public class QueueEditViewModel
 {
     public int Id { get; set; }

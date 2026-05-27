@@ -1,3 +1,4 @@
+@* форма дополнительного поля задачи, админ задает название тип и обязательность *@
 @model TaskFieldDefinition
 @{
     ViewData["Title"] = Model.Id == 0 ? "Новое поле" : "Редактирование поля";
@@ -6,9 +7,23 @@
 <h1 class="h3 mb-3">@ViewData["Title"]</h1>
 <form method="post" class="card card-body shadow-sm">
     <input asp-for="Id" type="hidden" />
-    <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /></div>
-    <div class="mb-3"><label asp-for="FieldType" class="form-label"></label><select asp-for="FieldType" asp-items="Html.GetEnumSelectList<TaskFieldType>()" class="form-select"></select></div>
-    <div class="form-check mb-2"><input asp-for="IsRequired" class="form-check-input" /><label asp-for="IsRequired" class="form-check-label"></label></div>
-    <div class="form-check mb-3"><input asp-for="IsBase" class="form-check-input" /><label asp-for="IsBase" class="form-check-label"></label></div>
-    <div class="d-flex gap-2"><button type="submit" class="btn btn-primary">Сохранить</button><a class="btn btn-outline-secondary" asp-action="Index">Назад</a></div>
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control"/>
+    </div>
+    <div class="mb-3">
+        <label asp-for="FieldType" class="form-label"></label>
+        <select asp-for="FieldType" asp-items="Html.GetEnumSelectList<TaskFieldType>()" class="form-select"></select>
+    </div>
+    <div class="form-check mb-2">
+        <input asp-for="IsRequired" class="form-check-input"/><label asp-for="IsRequired" class="form-check-label"></label>
+    </div>
+    <div class="form-check mb-3">
+        <input asp-for="IsBase" class="form-check-input"/>
+        <label asp-for="IsBase" class="form-check-label"></label>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Назад</a>
+    </div>
 </form>

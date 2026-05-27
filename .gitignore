@@ -1,0 +1,6 @@
+# файлы которые git не должен отслеживать в репозитории
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/

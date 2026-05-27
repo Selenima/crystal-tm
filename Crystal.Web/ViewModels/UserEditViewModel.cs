@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Crystal.Web.ViewModels;
 
+// модель формы пользователя в админке
 public class UserEditViewModel
 {
     public int Id { get; set; }
@@ -40,6 +41,7 @@ public class UserEditViewModel
     [Display(Name = "Очередь")]
     public int? WorkQueueId { get; set; }
 
+    // очереди для select
     public List<SelectListItem> Queues { get; set; } = [];
     [Display(Name = "Проекты")]
     public List<int> SelectedProjectIds { get; set; } = [];

@@ -10,10 +10,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Crystal.Web.Controllers;
 
 [Authorize(Policy = "AdminOnly")]
+// тут редактируются пользователи проекты очереди статусы переходы и поля
 public class AdminController(ApplicationDbContext context) : Controller
 {
+    // хэшер нужен чтобы новый пароль хранить как хеш а не текстом
     private readonly PasswordHasher<User> _passwordHasher = new();
 
+    // главная страница админки собирает все справочники в одну модель
     public async Task<IActionResult> Index()
     {
         var model = new AdminDashboardViewModel
@@ -38,7 +41,9 @@ public class AdminController(ApplicationDbContext context) : Controller
 
         return View(model);
     }
-
+    
+    [HttpGet]
+    // get форма пользователя. без id создаем нового с id редактируем старого
     public async Task<IActionResult> UserForm(int? id)
     {
         var model = new UserEditViewModel();
@@ -70,6 +75,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // форма пользователя сохраняет данные пароль очередь и доступы к проектам
     public async Task<IActionResult> UserForm(UserEditViewModel model)
     {
         if (model.Id == 0 && string.IsNullOrWhiteSpace(model.Password))
@@ -131,6 +137,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // удаляет пользователя если он найден
     public async Task<IActionResult> DeleteUser(int id)
     {
         var user = await context.Users.FindAsync(id);
@@ -143,6 +150,7 @@ public class AdminController(ApplicationDbContext context) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // форма проекта для создания или редактирования
     public async Task<IActionResult> ProjectForm(int? id)
     {
         if (!id.HasValue)
@@ -156,6 +164,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // сохраняет проект и проверяет что форма валидная
     public async Task<IActionResult> ProjectForm(ProjectEntity model)
     {
         if (!ModelState.IsValid)
@@ -178,6 +187,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // удаляет проект
     public async Task<IActionResult> DeleteProject(int id)
     {
         var item = await context.Projects.FindAsync(id);
@@ -190,6 +200,7 @@ public class AdminController(ApplicationDbContext context) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // форма очереди, плюс подтягивает пользователей и задачи этой очереди
     public async Task<IActionResult> QueueForm(int? id)
     {
         var model = new QueueEditViewModel();
@@ -217,6 +228,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // сохраняет очередь и переносит выбранных пользователей и задачи
     public async Task<IActionResult> QueueForm(QueueEditViewModel model)
     {
         if (!ModelState.IsValid)
@@ -262,6 +274,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // удаляет очередь, связанные пользователи и задачи остаются без очереди
     public async Task<IActionResult> DeleteQueue(int id)
     {
         var item = await context.WorkQueues.FindAsync(id);
@@ -274,6 +287,7 @@ public class AdminController(ApplicationDbContext context) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // форма статуса задачи
     public async Task<IActionResult> StatusForm(int? id)
     {
         if (!id.HasValue)
@@ -287,6 +301,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // сохраняет название и цвет статуса
     public async Task<IActionResult> StatusForm(TaskStatusEntity model)
     {
         if (!ModelState.IsValid)
@@ -307,6 +322,7 @@ public class AdminController(ApplicationDbContext context) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // форма правила перехода между статусами
     public async Task<IActionResult> TransitionForm(int? id)
     {
         var model = new StatusTransitionEditViewModel();
@@ -329,6 +345,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // сохраняет правило
     public async Task<IActionResult> TransitionForm(StatusTransitionEditViewModel model)
     {
         if (model.FromTaskStatusEntityId == model.ToTaskStatusEntityId)
@@ -372,6 +389,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // удаляет правило перехода статуса
     public async Task<IActionResult> DeleteTransition(int id)
     {
         var item = await context.TaskStatusTransitions.FindAsync(id);
@@ -386,6 +404,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // удаляет статус если он найден
     public async Task<IActionResult> DeleteStatus(int id)
     {
         var item = await context.TaskStatuses.FindAsync(id);
@@ -398,6 +417,7 @@ public class AdminController(ApplicationDbContext context) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // форма дополнительного поля задачи
     public async Task<IActionResult> FieldForm(int? id)
     {
         if (!id.HasValue)
@@ -411,6 +431,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // сохраняет настройку дополнительного поля
     public async Task<IActionResult> FieldForm(TaskFieldDefinition model)
     {
         if (!ModelState.IsValid)
@@ -433,6 +454,7 @@ public class AdminController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // удаляет дополнительное поле и его значения
     public async Task<IActionResult> DeleteField(int id)
     {
         var item = await context.TaskFieldDefinitions.FindAsync(id);
@@ -445,6 +467,7 @@ public class AdminController(ApplicationDbContext context) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // собирает очереди для дропдауна
     private async Task<List<SelectListItem>> GetQueueOptions()
     {
         return await context.WorkQueues
@@ -453,6 +476,7 @@ public class AdminController(ApplicationDbContext context) : Controller
             .ToListAsync();
     }
 
+    // собирает проекты для чекбоксов доступа
     private async Task<List<SelectListItem>> GetProjectOptions()
     {
         return await context.Projects
@@ -461,6 +485,7 @@ public class AdminController(ApplicationDbContext context) : Controller
             .ToListAsync();
     }
 
+    // собирает статусы для формы переходов
     private async Task<List<SelectListItem>> GetStatusOptions()
     {
         return await context.TaskStatuses

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Crystal.Web.Controllers;
 
+// контроллер для общих страниц приложения
 public class HomeController : Controller
 {
     public IActionResult Index()

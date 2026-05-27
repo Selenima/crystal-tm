@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Globalization;
 using Crystal.Web.Data;
 using Crystal.Web.Models;
 using Crystal.Web.ViewModels;
@@ -10,15 +11,19 @@ using Microsoft.EntityFrameworkCore;
 namespace Crystal.Web.Controllers;
 
 [Authorize]
+// контроллер задач
 public class TasksController(ApplicationDbContext context) : Controller
 {
+    // сколько задач показываем на одной странице
     private const int PageSize = 6;
 
+    // главная страница задач, собирает фильтры и отдает полную view
     public async Task<IActionResult> Index(string? search, int? statusId, TaskPriority? priority, int? projectId, int page = 1)
     {
         return View(await BuildIndexModel(search, statusId, priority, projectId, page));
     }
 
+    // отдает пустую форму задачи с дефолтным статусом и дедлайном
     public async Task<IActionResult> Create()
     {
         var availableProjectIds = await GetAvailableProjectIds();
@@ -37,7 +42,7 @@ public class TasksController(ApplicationDbContext context) : Controller
         {
             Task = new TaskItem
             {
-                Deadline = DateTime.Today.AddDays(7),
+                Deadline = DateTime.UtcNow.Date.AddDays(7),
                 Priority = TaskPriority.Medium,
                 TaskStatusEntityId = defaultStatusId
             }
@@ -46,6 +51,7 @@ public class TasksController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // проверяет доступ к проекту и сохраняет задачу
     public async Task<IActionResult> Create(TaskEditViewModel model)
     {
         if (!await HasProjectAccess(model.Task.ProjectEntityId))
@@ -64,6 +70,7 @@ public class TasksController(ApplicationDbContext context) : Controller
             .OrderBy(x => x.Id)
             .Select(x => x.Id)
             .FirstAsync();
+        NormalizeTaskDates(model.Task);
 
         context.Tasks.Add(model.Task);
         await context.SaveChangesAsync();
@@ -72,6 +79,7 @@ public class TasksController(ApplicationDbContext context) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // загружает задачу и ее доп поля для формы
     public async Task<IActionResult> Edit(int id)
     {
         var task = await context.Tasks
@@ -95,6 +103,7 @@ public class TasksController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // обновляет задачу, но статус оставляет старым чтобы его меняли через переходы
     public async Task<IActionResult> Edit(int id, TaskEditViewModel model)
     {
         if (id != model.Task.Id)
@@ -116,6 +125,7 @@ public class TasksController(ApplicationDbContext context) : Controller
 
         model.Task.CreatedById = model.CreatedById ?? GetCurrentUserId();
         model.Task.TaskStatusEntityId = existingTask.TaskStatusEntityId;
+        NormalizeTaskDates(model.Task);
         context.Update(model.Task);
         await context.SaveChangesAsync();
         await SaveFieldValues(model.Task.Id, model.Fields);
@@ -123,6 +133,7 @@ public class TasksController(ApplicationDbContext context) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // показывает полную карточку задачи с комментариями и разрешенными статусами
     public async Task<IActionResult> Details(int id)
     {
         var task = await context.Tasks
@@ -156,6 +167,7 @@ public class TasksController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // удаление задачи, срабатывает только если есть доступ к проекту
     public async Task<IActionResult> Delete(int id)
     {
         var task = await context.Tasks.FindAsync(id);
@@ -169,6 +181,7 @@ public class TasksController(ApplicationDbContext context) : Controller
     }
 
     [HttpGet]
+    // ajax фильтр возвращает только таблицу, без всего layout
     public async Task<IActionResult> Filter(string? search, int? statusId, TaskPriority? priority, int? projectId, int page = 1)
     {
         return PartialView("_TaskTable", await BuildIndexModel(search, statusId, priority, projectId, page));
@@ -176,6 +189,7 @@ public class TasksController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // смена статуса проверяет что такой переход вообще разрешен
     public async Task<IActionResult> ChangeStatus(int id, int statusId)
     {
         var task = await context.Tasks.FirstOrDefaultAsync(x => x.Id == id);
@@ -201,6 +215,7 @@ public class TasksController(ApplicationDbContext context) : Controller
     }
 
     [HttpGet]
+    // возвращает список комментариев для частичного обновления на странице
     public async Task<IActionResult> Comments(int id)
     {
         var taskProjectId = await context.Tasks
@@ -224,6 +239,7 @@ public class TasksController(ApplicationDbContext context) : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // добавляет комментарий и сразу возвращает обновленный partial
     public async Task<IActionResult> AddComment(int taskId, string comment)
     {
         if (string.IsNullOrWhiteSpace(comment))
@@ -261,10 +277,12 @@ public class TasksController(ApplicationDbContext context) : Controller
         return PartialView("_CommentsList", comments);
     }
 
+    // собирает модель списка задач с фильтрами пагинацией и select списками
     private async Task<TaskIndexViewModel> BuildIndexModel(string? search, int? statusId, TaskPriority? priority, int? projectId, int page)
     {
         var availableProjectIds = await GetAvailableProjectIds();
 
+        // query постепенно дополняется фильтрами, запрос в базу уйдет только на ToListAsync
         var query = context.Tasks
             .Include(x => x.ProjectEntity)
             .Include(x => x.AssignedTo)
@@ -325,6 +343,7 @@ public class TasksController(ApplicationDbContext context) : Controller
         };
     }
 
+    // подготавливает форму задачи, добавляет списки пользователей проектов очередей и доп поля
     private async Task<TaskEditViewModel> BuildTaskForm(TaskEditViewModel model)
     {
         var availableProjectIds = await GetAvailableProjectIds();
@@ -344,7 +363,7 @@ public class TasksController(ApplicationDbContext context) : Controller
                 FieldType = x.FieldType,
                 IsRequired = x.IsRequired,
                 IsBase = x.IsBase,
-                Value = existingValues.GetValueOrDefault(x.Id)
+                Value = FormatFieldValueForInput(x.FieldType, existingValues.GetValueOrDefault(x.Id))
             }).ToList();
         }
 
@@ -367,6 +386,7 @@ public class TasksController(ApplicationDbContext context) : Controller
         return model;
     }
 
+    // ручная проверка динамических полей, потому что их нельзя заранее прописать атрибутами
     private Task ValidateFields(TaskEditViewModel model)
     {
         foreach (var field in model.Fields.Where(x => x.IsRequired && string.IsNullOrWhiteSpace(x.Value)))
@@ -374,9 +394,18 @@ public class TasksController(ApplicationDbContext context) : Controller
             ModelState.AddModelError(string.Empty, $"Поле \"{field.Name}\" обязательно.");
         }
 
+        foreach (var field in model.Fields.Where(x => x.FieldType == TaskFieldType.Date && !string.IsNullOrWhiteSpace(x.Value)))
+        {
+            if (!DateTime.TryParseExact(field.Value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            {
+                ModelState.AddModelError(string.Empty, $"РџРѕР»Рµ \"{field.Name}\" РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РґР°С‚РѕР№.");
+            }
+        }
+
         return Task.CompletedTask;
     }
 
+    // сохраняет доп поля просто удаляя старые значения и записывая новые
     private async Task SaveFieldValues(int taskId, IEnumerable<TaskFieldInputViewModel> fields)
     {
         var currentValues = await context.TaskFieldValues.Where(x => x.TaskItemId == taskId).ToListAsync();
@@ -393,11 +422,44 @@ public class TasksController(ApplicationDbContext context) : Controller
             {
                 TaskItemId = taskId,
                 TaskFieldDefinitionId = field.DefinitionId,
-                Value = field.Value.Trim()
+                Value = NormalizeFieldValue(field)
             });
         }
 
         await context.SaveChangesAsync();
+    }
+
+    // достает id текущего пользователя из claims cookie
+    private static void NormalizeTaskDates(TaskItem task)
+    {
+        if (task.Deadline.HasValue)
+        {
+            task.Deadline = DateTime.SpecifyKind(task.Deadline.Value.Date, DateTimeKind.Utc);
+        }
+    }
+
+    private static string NormalizeFieldValue(TaskFieldInputViewModel field)
+    {
+        var value = field.Value?.Trim() ?? string.Empty;
+        if (field.FieldType != TaskFieldType.Date)
+        {
+            return value;
+        }
+
+        return DateTime.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture)
+            .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    }
+
+    private static string? FormatFieldValueForInput(TaskFieldType fieldType, string? value)
+    {
+        if (fieldType != TaskFieldType.Date || string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        return DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+            ? date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : value;
     }
 
     private int GetCurrentUserId()
@@ -406,6 +468,7 @@ public class TasksController(ApplicationDbContext context) : Controller
         return int.TryParse(value, out var userId) ? userId : 0;
     }
 
+    // возвращает проекты доступные пользователю, админ видит все
     private async Task<List<int>> GetAvailableProjectIds()
     {
         if (User.IsInRole("Admin"))
@@ -420,6 +483,7 @@ public class TasksController(ApplicationDbContext context) : Controller
             .ToListAsync();
     }
 
+    // проверяет доступ к одному проекту перед показом или изменением данных
     private async Task<bool> HasProjectAccess(int projectId)
     {
         if (User.IsInRole("Admin"))

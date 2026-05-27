@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Crystal.Web.ViewModels;
 
+// модель формы задачи, нужна чтобы вместе с задачей передать списки для select и доп поля
 public class TaskEditViewModel
 {
     public int Id { get; set; }

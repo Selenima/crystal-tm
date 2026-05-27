@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Crystal.Web.Data;
 
+// главный контекст бд. через него приложение читает и пишет данные в базу
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
+    // dbset это таблицы базы, с ними работают контроллеры
     public DbSet<User> Users => Set<User>();
     public DbSet<ProjectEntity> Projects => Set<ProjectEntity>();
     public DbSet<UserProjectAccess> UserProjectAccesses => Set<UserProjectAccess>();
@@ -17,13 +19,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<TaskComment> TaskComments => Set<TaskComment>();
     public DbSet<UserSessionToken> UserSessionTokens => Set<UserSessionToken>();
 
+    // тут описывается структура базы, связи и стартовые данные
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
+        // уникальные индексы не дают создать дубли там где они ломают логику
         modelBuilder.Entity<User>().HasIndex(x => x.Email).IsUnique();
         modelBuilder.Entity<TaskStatusEntity>().HasIndex(x => x.Name).IsUnique();
         modelBuilder.Entity<TaskFieldDefinition>().HasIndex(x => x.Name).IsUnique();
+        // дальше настраиваются связи между таблицами
         modelBuilder.Entity<UserProjectAccess>()
             .HasIndex(x => new { x.UserId, x.ProjectEntityId })
             .IsUnique();
@@ -130,11 +135,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .HasForeignKey(x => x.TaskFieldDefinitionId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        
+// ---------------------------------------------------------------------------------------------------------------------
+        // hasdata добавляет мокнутые данные
         modelBuilder.Entity<ProjectEntity>().HasData(
             new ProjectEntity { Id = 1, Name = "Internal Portal", Description = "Внутренний проект для сотрудников." },
             new ProjectEntity { Id = 2, Name = "Demo Release", Description = "Учебная демонстрация для сдачи." }
         );
-
+        
         modelBuilder.Entity<WorkQueue>().HasData(
             new WorkQueue { Id = 1, Name = "Backend Queue", Description = "Разработчики backend." },
             new WorkQueue { Id = 2, Name = "QA Queue", Description = "Команда тестирования." }

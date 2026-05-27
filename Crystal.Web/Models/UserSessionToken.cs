@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Crystal.Web.Models;
 
+// токены сессии пользователя, нужны чтобы cookie можно было проверять и обновлять
 public class UserSessionToken
 {
     public int Id { get; set; }

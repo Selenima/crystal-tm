@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Crystal.Web.ViewModels;
 
+// модель формы перехода статуса, она связывает from и to статус
 public class StatusTransitionEditViewModel
 {
     public int Id { get; set; }

@@ -2,6 +2,7 @@ using Crystal.Web.Models;
 
 namespace Crystal.Web.ViewModels;
 
+// серия для главной страницы админки, сюда складываются все справочники
 public class AdminDashboardViewModel
 {
     public List<User> Users { get; set; } = [];

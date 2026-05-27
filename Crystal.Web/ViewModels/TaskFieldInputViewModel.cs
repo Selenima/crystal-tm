@@ -2,6 +2,7 @@ using Crystal.Web.Models;
 
 namespace Crystal.Web.ViewModels;
 
+// каждое поле в форме задачи строится из таск филд дифинишен
 public class TaskFieldInputViewModel
 {
     public int DefinitionId { get; set; }

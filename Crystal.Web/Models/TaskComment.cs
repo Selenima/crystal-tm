@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Crystal.Web.Models;
 
+// комментарий под задачей хранит кто написал текст и когда
 public class TaskComment
 {
     public int Id { get; set; }

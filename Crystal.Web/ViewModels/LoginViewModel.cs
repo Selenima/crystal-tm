@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Crystal.Web.ViewModels;
 
+// данные формы входа, пользователь вводит email и пароль
 public class LoginViewModel
 {
     [Required]

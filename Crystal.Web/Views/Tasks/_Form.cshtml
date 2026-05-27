@@ -1,3 +1,4 @@
+@* общая форма задачи для create и edit, тут обычные поля и динамические доп поля *@
 @model TaskEditViewModel
 
 <form method="post" class="card card-body shadow-sm">
@@ -26,6 +27,12 @@
     <div class="row g-3">
         @for (var i = 0; i < Model.Fields.Count; i++)
         {
+            var inputType = Model.Fields[i].FieldType switch
+            {
+                TaskFieldType.Number => "number",
+                TaskFieldType.Date => "date",
+                _ => "text"
+            };
             <input asp-for="Fields[i].DefinitionId" type="hidden" />
             <input asp-for="Fields[i].Name" type="hidden" />
             <input asp-for="Fields[i].FieldType" type="hidden" />
@@ -33,7 +40,7 @@
             <input asp-for="Fields[i].IsBase" type="hidden" />
             <div class="col-md-6">
                 <label class="form-label">@Model.Fields[i].Name @(Model.Fields[i].IsRequired ? "*" : "")</label>
-                <input asp-for="Fields[i].Value" class="form-control" />
+                <input asp-for="Fields[i].Value" type="@inputType" class="form-control" />
             </div>
         }
     </div>

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Crystal.Web.Data;
 
+
+// маленький вспомогательный класс чтобы получить хеши паролей 
 public static class SeederPassword
 {
     public static string Hash(string password)

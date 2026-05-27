@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Crystal.Web.Models;
 
+// конкретное значение дополнительного поля у конкретной задачи
 public class TaskFieldValue
 {
     public int Id { get; set; }

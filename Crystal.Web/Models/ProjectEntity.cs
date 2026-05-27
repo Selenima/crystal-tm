@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Crystal.Web.Models;
 
+// проект в системе. к нему потом привязываются задачи и доступы пользователей
 public class ProjectEntity
 {
     public int Id { get; set; }

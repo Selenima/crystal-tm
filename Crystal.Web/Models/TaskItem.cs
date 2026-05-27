@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Crystal.Web.Models;
 
+// главная сущность задачи, тут хранится название статус проект исполнитель и доп поля
 public class TaskItem
 {
     public int Id { get; set; }
